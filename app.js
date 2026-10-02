@@ -1,6 +1,6 @@
 // ============================================================
 //   Simulación Flujo de Camiones - TISUR
-//   Paso 8: Filtro de rutas (Ingreso / Salida)
+//   Paso 9: Toggle de nombres de rutas
 // ============================================================
 
 const escenario  = document.getElementById('escenario');
@@ -81,6 +81,9 @@ let ultimoTsFlujo = 0;
 
 // Filtro de rutas
 let filtroActual = 'todos';   // 'todos' | 'ingreso' | 'salida'
+
+// Mostrar/ocultar nombres de rutas
+let mostrarNombres = true;
 
 // ============================================================
 // HELPERS SVG
@@ -731,6 +734,7 @@ function iniciarRamificacion(rutaPadre, puntoBifurcacion) {
     'paint-order': 'stroke', stroke: '#000', 'stroke-width': 4
   });
   etiqueta.textContent = `${nombreDeHerramienta(tipo)} ${rutaPadre.id}.${id} · Rama`;
+  etiqueta.style.display = mostrarNombres ? '' : 'none';
   grupo.appendChild(etiqueta);
 
   svg.appendChild(grupo);
@@ -780,6 +784,7 @@ function iniciarRuta(punto) {
     'paint-order': 'stroke', stroke: '#000', 'stroke-width': 4
   });
   etiqueta.textContent = `${nombreDeHerramienta(tipo)} ${id} · IN`;
+  etiqueta.style.display = mostrarNombres ? '' : 'none';
   grupo.appendChild(etiqueta);
 
   svg.appendChild(grupo);
@@ -833,6 +838,7 @@ async function finalizarRuta() {
     'paint-order': 'stroke', stroke: '#000', 'stroke-width': 4
   });
   etiquetaOut.textContent = `${nombreDeHerramienta(p.subtipo)} ${p.id} · OUT`;
+  etiquetaOut.style.display = mostrarNombres ? '' : 'none';
   p.grupo.appendChild(etiquetaOut);
 
   const elemento = {
@@ -861,6 +867,10 @@ async function finalizarRuta() {
       eliminarElemento(elemento.id);
     }
   });
+
+  // Respetar el estado actual del toggle de nombres
+  if (p.etiqueta)    p.etiqueta.style.display    = mostrarNombres ? '' : 'none';
+  if (etiquetaOut)   etiquetaOut.style.display   = mostrarNombres ? '' : 'none';
 
   limpiarPreview();
   app.enProgreso = null;
@@ -1051,7 +1061,6 @@ function eliminarElemento(id) {
 // FILTRO DE RUTAS
 // ============================================================
 function aplicarFiltro() {
-  // Aplicar en el SVG
   const rutas = svg.querySelectorAll('g.elemento.ruta');
   rutas.forEach(g => {
     const id = parseInt(g.dataset.id, 10);
@@ -1068,8 +1077,19 @@ function aplicarFiltro() {
     g.style.display = visible ? '' : 'none';
   });
 
-  // Aplicar en la lista lateral
   refrescarLista();
+}
+
+// ============================================================
+// MOSTRAR / OCULTAR NOMBRES DE RUTAS
+// ============================================================
+function aplicarVisibilidadNombres() {
+  svg.querySelectorAll('g.elemento.ruta').forEach(g => {
+    const textos = g.querySelectorAll(':scope > text');
+    textos.forEach(t => {
+      t.style.display = mostrarNombres ? '' : 'none';
+    });
+  });
 }
 
 // ============================================================
@@ -1078,7 +1098,6 @@ function aplicarFiltro() {
 function refrescarLista() {
   listaEl.innerHTML = '';
   app.elementos.forEach(e => {
-    // Filtro visual en la lista
     if (filtroActual !== 'todos' && e.tipo === 'ruta') {
       if (filtroActual === 'ingreso' && e.subtipo !== 'ruta-ingreso') return;
       if (filtroActual === 'salida'  && e.subtipo !== 'ruta-salida')  return;
@@ -1126,6 +1145,19 @@ document.querySelectorAll('.filtro-btn').forEach(btn => {
 });
 
 // ============================================================
+// BOTÓN: Mostrar / ocultar nombres de rutas
+// ============================================================
+const btnToggleNombres = document.getElementById('btn-toggle-nombres');
+if (btnToggleNombres) {
+  btnToggleNombres.addEventListener('click', () => {
+    mostrarNombres = !mostrarNombres;
+    btnToggleNombres.classList.toggle('activo', mostrarNombres);
+    aplicarVisibilidadNombres();
+    guardarEnStorage();
+  });
+}
+
+// ============================================================
 // EVENTOS DEL ESCENARIO
 // ============================================================
 escenario.addEventListener('click', (e) => {
@@ -1137,7 +1169,6 @@ escenario.addEventListener('click', (e) => {
 
   const p = coordsMundo(e);
 
-  // --- RAMIFICAR ---
   if (app.herramienta === 'ramificar') {
     if (app.enProgreso && app.enProgreso.esRama) {
       agregarPuntoRuta(p);
@@ -1153,7 +1184,6 @@ escenario.addEventListener('click', (e) => {
     return;
   }
 
-  // --- DIBUJO NORMAL ---
   if (app.herramienta === 'ruta-ingreso' || app.herramienta === 'ruta-salida') {
     if (!app.enProgreso) iniciarRuta(p);
     else agregarPuntoRuta(p);
@@ -1220,7 +1250,8 @@ function guardarEnStorage() {
   try {
     const datos = {
       elementos: app.elementos,
-      contadorId: app.contadorId
+      contadorId: app.contadorId,
+      mostrarNombres: mostrarNombres
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
   } catch (err) {
@@ -1228,20 +1259,45 @@ function guardarEnStorage() {
   }
 }
 
-function cargarDesdeStorage() {
+async function cargarDesdeStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const datos = JSON.parse(raw);
-    if (!datos.elementos) return;
 
-    app.elementos = datos.elementos;
-    app.contadorId = datos.contadorId || 0;
+    // 1) Si hay algo en localStorage, úsalo (modo edición)
+    if (raw) {
+      const datos = JSON.parse(raw);
+      if (datos && datos.elementos) {
+        aplicarDatos(datos);
+        return;
+      }
+    }
 
-    app.elementos.forEach(e => reconstruirElemento(e));
+    // 2) Si no hay nada, intenta cargar datos.json del repo (modo "demo")
+    const resp = await fetch('datos.json', { cache: 'no-cache' });
+    if (!resp.ok) return;
+    const datos = await resp.json();
+    if (datos && datos.elementos) {
+      aplicarDatos(datos);
+      // NO guardamos en localStorage: así el usuario parte limpio
+      // y si edita algo, se guardará sobre esto.
+    }
   } catch (err) {
     console.warn('No se pudo cargar:', err);
   }
+}
+
+function aplicarDatos(datos) {
+  app.elementos = datos.elementos || [];
+  app.contadorId = datos.contadorId || 0;
+
+  if (typeof datos.mostrarNombres === 'boolean') {
+    mostrarNombres = datos.mostrarNombres;
+    if (btnToggleNombres) {
+      btnToggleNombres.classList.toggle('activo', mostrarNombres);
+    }
+  }
+
+  app.elementos.forEach(e => reconstruirElemento(e));
 }
 
 function reconstruirElemento(e) {
@@ -1275,6 +1331,7 @@ function reconstruirElemento(e) {
       'paint-order': 'stroke', stroke: '#000', 'stroke-width': 4
     });
     tIn.textContent = `${e.titulo} · IN`;
+    tIn.style.display = mostrarNombres ? '' : 'none';
     grupo.appendChild(tIn);
 
     const tOut = el('text', {
@@ -1283,6 +1340,7 @@ function reconstruirElemento(e) {
       'paint-order': 'stroke', stroke: '#000', 'stroke-width': 4
     });
     tOut.textContent = `${e.titulo} · OUT`;
+    tOut.style.display = mostrarNombres ? '' : 'none';
     grupo.appendChild(tOut);
 
   } else if (POI_TIPOS[e.tipo]) {
@@ -1364,7 +1422,6 @@ document.getElementById('btn-exportar').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-
 // ============================================================
 // EXPORTAR A PNG (calidad completa, sin pérdida)
 // ============================================================
@@ -1374,17 +1431,14 @@ document.getElementById('btn-exportar-png').addEventListener('click', async () =
   const W = layoutImg.naturalWidth;
   const H = layoutImg.naturalHeight;
 
-  // 1) Crear un canvas del tamaño real del layout
   const canvas = document.createElement('canvas');
   canvas.width  = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // 2) Fondo blanco (igual que el escenario)
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, W, H);
 
-  // 3) Dibujar la ortofoto a tamaño completo
   try {
     ctx.drawImage(layoutImg, 0, 0, W, H);
   } catch (err) {
@@ -1393,29 +1447,20 @@ document.getElementById('btn-exportar-png').addEventListener('click', async () =
     return;
   }
 
-  // 4) Serializar el SVG y dibujarlo encima
-  //    Importante: clonar el SVG SIN la transformación de la vista,
-  //    para que salga con las coordenadas reales (0,0 a W,H).
   const svgClone = svg.cloneNode(true);
-
-  // Quitar cualquier transform inline
   svgClone.style.transform = '';
   svgClone.setAttribute('width', W);
   svgClone.setAttribute('height', H);
   svgClone.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 
-  // Quitar marcadores de vértice (los círculos amarillos de "editar")
   svgClone.querySelectorAll('circle[data-vertice]').forEach(n => n.remove());
-
-  // Quitar previews en vivo (por si acaso)
   svgClone.querySelectorAll('circle[pointer-events="none"]').forEach(n => n.remove());
 
   const svgString = new XMLSerializer().serializeToString(svgClone);
   const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
   const svgUrl = URL.createObjectURL(svgBlob);
 
-  // 5) Cargar el SVG como imagen y dibujarlo sobre el canvas
   const svgImg = new Image();
   svgImg.onload = () => {
     try {
@@ -1425,7 +1470,6 @@ document.getElementById('btn-exportar-png').addEventListener('click', async () =
     }
     URL.revokeObjectURL(svgUrl);
 
-    // 6) Generar el PNG final
     canvas.toBlob((blob) => {
       if (!blob) {
         infoModo.textContent = '❌ Error al generar la imagen';
@@ -1452,7 +1496,6 @@ document.getElementById('btn-exportar-png').addEventListener('click', async () =
   svgImg.src = svgUrl;
 });
 
-
 document.getElementById('btn-importar').addEventListener('click', () => {
   document.getElementById('input-importar').click();
 });
@@ -1474,6 +1517,7 @@ document.getElementById('input-importar').addEventListener('change', (e) => {
       guardarEnStorage();
       refrescarLista();
       aplicarFiltro();
+      aplicarVisibilidadNombres();
       if (app.herramienta === 'editar') activarEdicionVertices(true);
       infoModo.textContent = 'Importado correctamente.';
     } catch (err) {
@@ -1576,7 +1620,6 @@ function loop(ts) {
   const dt = Math.min((ts - sim.ultimoTimestamp) / 1000, 0.1);
   sim.ultimoTimestamp = ts;
 
-  // Animación de flujo de las flechas
   if (!ultimoTsFlujo) ultimoTsFlujo = ts;
   const dtFlujo = (ts - ultimoTsFlujo) / 1000;
   ultimoTsFlujo = ts;
@@ -1593,7 +1636,6 @@ function loop(ts) {
     sim.camiones = sim.camiones.filter(c => !c.terminado);
   }
 
-  // Actualizar flechas animadas de las rutas visibles
   svg.querySelectorAll('g.elemento.ruta').forEach(g => {
     if (g.style.display === 'none') return;
     const flechas = g.querySelector('g.flechas');
@@ -1645,15 +1687,16 @@ sliderVel.addEventListener('input', () => {
 // ARRANQUE
 // ============================================================
 let inicializado = false;
-function inicializar() {
+async function inicializar() {
   if (inicializado) return;
   inicializado = true;
 
   ajustarTamanoMundo();
   centrarVista();
-  cargarDesdeStorage();
+  await cargarDesdeStorage();
   refrescarLista();
   aplicarFiltro();
+  aplicarVisibilidadNombres();
 }
 
 layoutImg.addEventListener('load', inicializar);
