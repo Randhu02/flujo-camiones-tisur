@@ -377,3 +377,109 @@ html, body {
   background: #991b1b;
   color: #fff;
 }
+
+
+/* ============ RESPONSIVE MÓVIL ============ */
+@media (max-width: 900px) {
+  /* Ocultar paleta y panel */
+  .paleta {
+    display: none !important;
+  }
+  .panel {
+    display: none !important;
+  }
+
+  /* Escenario ocupa todo el ancho */
+  .escenario {
+    right: 0 !important;
+  }
+
+  /* Barra superior: compactar */
+  .barra {
+    height: auto;
+    min-height: 56px;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .barra h1 {
+    font-size: 13px;
+    flex: 1 1 100%;
+  }
+  .acciones {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+  .acciones button {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .acciones .sep {
+    display: none;
+  }
+  .filtros-rutas .filtro-btn {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+  #info-modo {
+    display: none;
+  }
+
+  /* Zoom controles más chicos */
+  .zoom-controles {
+    bottom: 10px;
+    right: 10px;
+    padding: 4px;
+  }
+  .zoom-controles button {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  /* Aviso */
+  #aviso-movil {
+    display: flex;
+  }
+}
+
+#aviso-movil {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 20px;
+}
+.aviso-contenido {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  text-align: center;
+}
+.aviso-contenido h2 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+.aviso-contenido p {
+  font-size: 13px;
+  color: #8b949e;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+.aviso-contenido button {
+  margin-top: 16px;
+  background: #2ea043;
+  border: none;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+}

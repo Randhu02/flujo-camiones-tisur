@@ -1703,3 +1703,20 @@ layoutImg.addEventListener('load', inicializar);
 if (layoutImg.complete && layoutImg.naturalWidth) {
   inicializar();
 }
+
+// ============================================================
+// RESPONSIVE MÓVIL
+// ============================================================
+const esMovil = window.matchMedia('(max-width: 900px)').matches;
+const btnCerrarAviso = document.getElementById('cerrar-aviso-movil');
+if (btnCerrarAviso) {
+  btnCerrarAviso.addEventListener('click', () => {
+    document.getElementById('aviso-movil').style.display = 'none';
+  });
+}
+
+// En móvil, ocultar herramientas de dibujo para no confundir
+if (esMovil) {
+  // El usuario igual puede ver el layout, hacer zoom y paneo.
+  // Los clics no dibujarán porque la paleta está oculta.
+}
