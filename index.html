@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Simulación Flujo de Camiones - TISUR</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ==================== BARRA SUPERIOR ==================== -->
+  <header class="barra">
+    <h1>🚛 Flujo de Camiones - TISUR</h1>
+
+    <div class="acciones">
+      <button id="btn-reset-vista" title="Centrar vista">🎯 Centrar</button>
+      <span class="sep"></span>
+      <button id="btn-sim-play" class="primario">▶ Iniciar</button>
+      <button id="btn-sim-reset">↻ Reiniciar</button>
+      <span class="sep"></span>
+      <button id="btn-exportar" title="Exportar a JSON">💾 Exportar</button>
+      <button id="btn-exportar-png" title="Exportar como imagen PNG (calidad completa)">🖼️ PNG</button>
+      <button id="btn-importar" title="Importar desde JSON">📂 Importar</button>
+      <input type="file" id="input-importar" accept=".json" hidden />
+      <span class="sep"></span>
+      <div class="filtros-rutas">
+        <button class="filtro-btn activo" data-filtro="todos" title="Mostrar todas las rutas">
+          👁️ Todos
+        </button>
+        <button class="filtro-btn" data-filtro="ingreso" title="Solo rutas de ingreso">
+          🟢 Ingreso
+        </button>
+        <button class="filtro-btn" data-filtro="salida" title="Solo rutas de salida">
+          🔴 Salida
+        </button>
+      </div>
+      <span id="info-modo">Herramienta: Ruta Ingreso</span>
+    </div>
+  </header>
+
+  <!-- ==================== PALETA IZQUIERDA ==================== -->
+  <aside class="paleta" id="paleta">
+    <div class="grupo-paleta">
+      <div class="grupo-titulo">Rutas</div>
+      <button class="herramienta activa" data-tool="ruta-ingreso" title="Dibujar ruta de ingreso">
+        <span class="icono">🟢</span>
+        <span class="nombre">Ruta Ingreso</span>
+      </button>
+      <button class="herramienta" data-tool="ruta-salida" title="Dibujar ruta de salida">
+        <span class="icono">🔴</span>
+        <span class="nombre">Ruta Salida</span>
+      </button>
+      <button class="herramienta" data-tool="ramificar" title="Ramificar ruta existente">
+        <span class="icono">🔀</span>
+        <span class="nombre">Ramificar</span>
+      </button>
+    </div>
+
+    <div class="grupo-paleta">
+      <div class="grupo-titulo">Infraestructura</div>
+      <button class="herramienta" data-tool="balanza" title="Balanza de pesaje">
+        <span class="icono">⚖️</span>
+        <span class="nombre">Balanza</span>
+      </button>
+      <button class="herramienta" data-tool="almacen" title="Almacén">
+        <span class="icono">🏭</span>
+        <span class="nombre">Almacén</span>
+      </button>
+      <button class="herramienta" data-tool="muelle" title="Muelle">
+        <span class="icono">🚢</span>
+        <span class="nombre">Muelle</span>
+      </button>
+      <button class="herramienta" data-tool="silo" title="Silo">
+        <span class="icono">🌾</span>
+        <span class="nombre">Silo</span>
+      </button>
+      <button class="herramienta" data-tool="tanque" title="Tanque cilíndrico">
+        <span class="icono">🛢️</span>
+        <span class="nombre">Tanque</span>
+      </button>
+    </div>
+
+    <div class="grupo-paleta">
+      <div class="grupo-titulo">Zonas</div>
+      <button class="herramienta" data-tool="zona" title="Dibujar zona (polígono)">
+        <span class="icono">🔷</span>
+        <span class="nombre">Zona</span>
+      </button>
+    </div>
+
+    <div class="grupo-paleta">
+      <div class="grupo-titulo">Edición</div>
+      <button class="herramienta" data-tool="editar" title="Editar vértices">
+        <span class="icono">✏️</span>
+        <span class="nombre">Editar</span>
+      </button>
+      <button class="herramienta" data-tool="borrador" title="Borrar elemento">
+        <span class="icono">🗑️</span>
+        <span class="nombre">Borrador</span>
+      </button>
+      <button class="herramienta" data-tool="mover" title="Mover vista">
+        <span class="icono">🖐️</span>
+        <span class="nombre">Mover</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ==================== ÁREA DE TRABAJO ==================== -->
+  <main class="escenario" id="escenario">
+    <div class="mundo" id="mundo">
+      <img id="layout" src="layout.jpg" alt="Layout TISUR" draggable="false" />
+      <svg id="capa-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div class="zoom-controles">
+      <button id="zoom-in">＋</button>
+      <button id="zoom-out">－</button>
+      <button id="zoom-fit">⤢</button>
+      <span id="zoom-nivel">100%</span>
+    </div>
+  </main>
+
+  <!-- ==================== PANEL DERECHO ==================== -->
+  <aside class="panel">
+    <h2>Elementos</h2>
+    <ul id="lista-elementos"></ul>
+
+    <h2 style="margin-top:20px;">Métricas</h2>
+    <div class="metricas">
+      <div class="metrica">
+        <span class="metrica-valor" id="m-en-circ">0</span>
+        <span class="metrica-label">En circulación</span>
+      </div>
+      <div class="metrica">
+        <span class="metrica-valor" id="m-ingresados">0</span>
+        <span class="metrica-label">Ingresados</span>
+      </div>
+      <div class="metrica">
+        <span class="metrica-valor" id="m-salidos">0</span>
+        <span class="metrica-label">Salidos</span>
+      </div>
+      <div class="metrica">
+        <span class="metrica-valor" id="m-tiempo">—</span>
+        <span class="metrica-label">Tiempo prom.</span>
+      </div>
+    </div>
+
+    <h2 style="margin-top:20px;">Velocidad</h2>
+    <input type="range" id="slider-vel" min="0.25" max="4" step="0.25" value="1" />
+    <span id="vel-label">1.00×</span>
+
+    <p class="ayuda" id="ayuda-texto">
+      <b>Ruta Ingreso:</b> clic agrega puntos, doble clic termina.<br>
+      <b>Balanza:</b> clic para colocar, luego escribe el título.<br>
+      <b>Zona:</b> clic agrega vértices, doble clic termina.<br>
+      <b>Borrador:</b> clic sobre un elemento para eliminarlo.<br>
+      <b>Zoom:</b> rueda del mouse.<br>
+      <b>Paneo:</b> mantener espacio + arrastrar.
+    </p>
+  </aside>
+
+  <!-- ==================== MODAL PARA TÍTULOS ==================== -->
+  <div class="modal" id="modal">
+    <div class="modal-contenido">
+      <h3 id="modal-titulo">Título</h3>
+      <input type="text" id="modal-input" placeholder="Escribe aquí..." />
+      <div class="modal-botones">
+        <button id="modal-cancelar">Cancelar</button>
+        <button id="modal-aceptar" class="primario">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
