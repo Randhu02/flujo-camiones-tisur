@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flujo de Camiones - TISUR</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Modo vista: ocultar paleta y panel */
+    .paleta, .panel { display: none !important; }
+    .escenario { right: 0 !important; }
+
+    /* Ocultar botones que ya no aplican */
+    #btn-sim-play, #btn-sim-reset, #btn-toggle-nombres { display: none !important; }
+    #info-modo { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== BARRA SUPERIOR ==================== -->
+  <header class="barra">
+    <h1>🚛 Flujo de Camiones - TISUR</h1>
+
+    <div class="acciones">
+      <button id="btn-reset-vista" title="Centrar vista">🎯 Centrar</button>
+      <span class="sep"></span>
+      <div class="filtros-rutas">
+        <button class="filtro-btn activo" data-filtro="todos" title="Mostrar todas las rutas">
+          👁️ Todos
+        </button>
+        <button class="filtro-btn" data-filtro="ingreso" title="Solo rutas de ingreso">
+          🟢 Ingreso
+        </button>
+        <button class="filtro-btn" data-filtro="salida" title="Solo rutas de salida">
+          🔴 Salida
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== ÁREA DE TRABAJO ==================== -->
+  <main class="escenario" id="escenario">
+    <div class="mundo" id="mundo">
+      <img id="layout" src="layout.jpg" alt="Layout TISUR" draggable="false" />
+      <svg id="capa-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div class="zoom-controles">
+      <button id="zoom-in">＋</button>
+      <button id="zoom-out">－</button>
+      <button id="zoom-fit">⤢</button>
+      <span id="zoom-nivel">100%</span>
+    </div>
+  </main>
+
+  <script src="view.js"></script>
+</body>
+</html>
